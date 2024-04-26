@@ -1,0 +1,10 @@
+Установка утилиты iperf 3
+Необходимо установить пакет "iperf3" для проверки пропускной способности сети между серверами
+
+apt-get install -y iperf3
+Выполнить запуск службы iperf3:
+
+systemctl enable --now iperf3
+
+проверка:
+systemctl status iperf3
