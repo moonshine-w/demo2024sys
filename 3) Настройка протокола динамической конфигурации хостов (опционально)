@@ -1,0 +1,59 @@
+Например:
+Вдруг по заданию подразумевается получить необходимые сетевые параметры от ISP автоматически и зафиксировать их статическими или т.п. 
+
+Установим пакет dhcp-server:
+apt-get install -y dhcp-server
+
+Настройка DHCP-сервера:
+sed -i "s/DHCPDARGS=/DHCPDARGS=ens35 ens36 ens37/g" /etc/sysconfig/dhcpd
+
+Пример конфигурационного файла с настройкой DHCP - сервера - расположен по пути "/etc/dhcp/dhcpd.conf.example"
+cp /etc/dhcp/dhcpd.conf{.example,}
+
+После чего, необходимо привести файл "/etc/dhcp/dhcpd.conf" к следующему виду:
+vim /etc/dhcp/dhcpd.conf
+
+скрин dhcp1
+
+Включаем и добавляем в автозагрузку службу dhcpd:
+systemctl enable --now dhcpd
+
+Проверить работоспособность службы dhcpd:
+systemctl status dhcpd
+
+Настройка DHCP6-сервера:
+sed -i "s/DHCPDARGS=/DHCPDARGS=ens35 ens36 ens37/g" /etc/sysconfig/dhcpd6
+
+Пример конфигурационного файла с настройкой DHCP - сервера - расположен по пути "/etc/dhcp/dhcpd6.conf.sample":
+/etc/dhcp/dhcpd6.conf{.sample,}
+
+После чего, необходимо привести файл "/etc/dhcp/dhcpd6.conf" к следующему виду:
+vim /etc/dhcp/dhcpd6.conf
+
+скрин dhcp2
+
+Включаем и добавляем в автозагрузку службу dhcpd6:
+systemctl enable --now dhcpd6
+
+Проверить работоспособность службы dhcpd6:
+systemctl status dhcpd6
+
+
+Установка Router Advertisement:
+apt-get install -y radvd
+
+Настройка Router Advertisement:
+Включим модуль, который отвечает за RA на интерфейсах ens35, ens36 и ens37 (нужно для получения верных параметров IPv6 автоматически):
+echo net.ipv6.conf.ens35.accept_ra = 2 >> /etc/net/sysctl.conf
+echo net.ipv6.conf.ens36.accept_ra = 2 >> /etc/net/sysctl.conf
+echo net.ipv6.conf.ens37.accept_ra = 2 >> /etc/net/sysctl.conf
+
+Файл конфигурации по умолчанию находится в /etc/radvd.conf:
+vim /etc/radvd.conf
+приводим его к следующему виду:
+
+скрин dhcp3
+
+После редактирования файла radvd необходимо перезапустить dhcpd6 и запустить и добавить в автозагрузку radvd:
+systemctl restart dhcpd6
+systemctl enable --now radvd
