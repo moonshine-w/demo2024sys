@@ -71,3 +71,5 @@ systemctl restart network
 
 для проверки:
 ip -c --br a
+sysctl -a | grep conf.all.forwarding
+sysctl -a | grep ip_forward
