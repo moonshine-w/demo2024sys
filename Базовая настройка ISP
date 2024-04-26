@@ -9,6 +9,7 @@ P.S. В версии etcnet-0.9.26-alt1, в /etc/net/ifaces/default/options со
 Поэтому необходимо перейти в конфигурационный файл "/etc/net/ifaces/default/options" и поменять значение "CONFIG_IPV6=no" на "CONFIG_IPV6=yes"
 
 vim /etc/net/ifaces/default/options
+
 Настройка адресации IPv4 и IPv6:
 В качестве системы конфигурации сети используется etcnet
 
