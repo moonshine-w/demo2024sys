@@ -10,6 +10,8 @@ P.S. В версии etcnet-0.9.26-alt1, в /etc/net/ifaces/default/options со
 
 vim /etc/net/ifaces/default/options
 
+скрин база1
+
 Настройка адресации IPv4 и IPv6:
 В качестве системы конфигурации сети используется etcnet
 
@@ -26,6 +28,8 @@ ens37 - сеть в сторону CLI;
 mkdir /etc/net/ifaces/ens35
 mkdir /etc/net/ifaces/ens36
 mkdir /etc/net/ifaces/ens37
+
+скрин база2
 
 vim /etc/net/ifaces/ens33/options
 TYPE=eth
