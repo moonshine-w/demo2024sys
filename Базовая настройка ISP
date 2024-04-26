@@ -1,0 +1,72 @@
+Задаём имя устройству:
+hostnamectl set-hostname ISP;exec bash
+Включение IPv6:
+следует проверить значение CONFIG_IPV6 в etcnet. Переменная может быть описана в /etc/net/options.d/*, /etc/net/ifaces/default/*, /etc/net/ifaces/*/options.
+
+Наибольший приоритет — у описания в /etc/net/ifaces/<NAME_INTERFACE>/options.
+
+P.S. В версии etcnet-0.9.26-alt1, в /etc/net/ifaces/default/options содержится CONFIG_IPV6=no
+Поэтому необходимо перейти в конфигурационный файл "/etc/net/ifaces/default/options" и поменять значение "CONFIG_IPV6=no" на "CONFIG_IPV6=yes"
+
+vim /etc/net/ifaces/default/options
+Настройка адресации IPv4 и IPv6:
+В качестве системы конфигурации сети используется etcnet
+
+Сетевые интерфейсы подключённые к ISP:
+ens33 - сеть Интернет;
+ens35 - сеть в сторону офиса HQ;
+ens36 - сеть в сторону офиса BRANCH;
+ens37 - сеть в сторону CLI;
+Для каждого сетевого интерфейса необходимо создать директорию по пути /etc/net/ifaces/<NAME_INTERFACE>/options:
+
+где - <NAME_INTERFACE> имя сетевого интерфейса
+3 отдельных команды по созданию директории
+
+mkdir /etc/net/ifaces/ens35
+mkdir /etc/net/ifaces/ens36
+mkdir /etc/net/ifaces/ens37
+
+vim /etc/net/ifaces/ens33/options
+TYPE=eth
+DISABLED=no
+NM_CONTROLLED=no
+BOOTPROTO=dhcp
+IPV4_CONFIG=yes
+
+Пример для интерфейса ens35:
+vim /etc/net/ifaces/ens35/options
+TYPE=eth
+DISABLED=no
+NM_CONTROLLED=no
+BOOTPROTO=static
+CONFIG_IPV4=yes
+CONFIG_IPV6=yes
+
+Поскольку данный файл должен быть идентичен для сетевых интерфейсов ens36 и ens37 - его можно скопировать в соответствующие директории: 
+cp /etc/net/ifaces/ens35/options /etc/net/ifaces/ens36/
+cp /etc/net/ifaces/ens35/options /etc/net/ifaces/ens37/
+
+Теперь назначаем IPv4 и IPv6 -адреса на сетевые интерфейсы:
+ens35 - сеть в сторону офиса HQ
+echo 11.11.11.1/24 > /etc/net/ifaces/ens35/ipv4address
+echo 2001:11::1/64 > /etc/net/ifaces/ens35/ipv6address
+
+ens36 - сеть в сторону офиса BRANCH;
+echo 22.22.22.1/24 > /etc/net/ifaces/ens36/ipv4address
+echo 2001:22::1/64 > /etc/net/ifaces/ens36/ipv6address
+
+ens37 - сеть в сторону CLI;
+echo 33.33.33.1/24 > /etc/net/ifaces/ens37/ipv4address
+echo 2001:33::1/64 > /etc/net/ifaces/ens37/ipv6address
+
+Включаем forwarding - маршрутизацию:
+Включаем forwarding для IPv4 и IPv6 посредством редактирования файла по пути /etc/net/sysctl.conf
+
+vim /etc/net/sysctl.conf
+net.ipv4.ip_forward = 1 
+net.ipv6.conf.all.forwarding = 1
+
+systemctl restart network
+
+для проверки:
+ip -c --br a
