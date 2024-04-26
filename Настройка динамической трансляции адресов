@@ -1,0 +1,38 @@
+Выполнятеся для настройки доступа в Интернет из сетей:
+HQ
+BRANCH
+CLI
+
+Устанавливаем nftables:
+apt-get update && apt-get install -y nftables
+
+Включаем и добавляем в автозагрузку службу nftables:
+systemctl enable --now nftables
+
+Настройка nftables:
+
+создаём в семействе ip таблицу nat:
+nft add table ip nat
+
+создаём цепочка postrouting в таблице nat семейства ip, также задаём hook и priority:
+nft add chain ip nat postrouting '{ type nat hook postrouting priority 0; }'
+
+создаём правила настройки NAT в семействе ip, таблице nat, цепочке postrouting:
+nft add rule ip nat postrouting ip saddr 11.11.11.0/24 oifname "ens33" counter masquerade
+nft add rule ip nat postrouting ip saddr 22.22.22.0/24 oifname "ens33" counter masquerade
+nft add rule ip nat postrouting ip saddr 33.33.33.0/24 oifname "ens33" counter masquerade
+
+Проверить:
+nft list ruleset | cat -n
+
+Сохраняем правила nftables:
+nft list ruleset | tail -n8 | tee -a /etc/nftables/nftables.nft
+cat /etc/nftables/nftables.nft
+
+Проверить:
+
+Перезагружаем службу nftables:
+systemctl restart nftables
+
+Смотрим правила:
+nft list ruleset
