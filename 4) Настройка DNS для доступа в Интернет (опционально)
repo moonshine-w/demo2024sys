@@ -1,0 +1,18 @@
+Установка DNS
+
+1. Установим пакет "bind":
+apt-get install bind -y
+
+Настройка DNS:
+1. Редактируем конфигурационный файл по пути "/var/lib/bind/etc/options.conf":
+vim /var/lib/bind/etc/options.conf
+
+скрин dns1
+
+Выполняем запуск и добавление в автозагрузку DNS - сервера:
+systemctl enable --now bind
+
+Проверить:
+CLI
+
+скрин dns2
