@@ -1,0 +1,81 @@
+Поднимаем GRE-туннель между HQ-R и BR-R
+
+HQ-R:
+Forwarding IPv4 и IPv6 был включён в базовой настройке.
+
+Напоминаю что тут используется "etcnet"
+подробнее о туннелях в etcnet
+Необходимо создать директорию для туннельного интерфейса:
+
+Стоит помнить, что имена tunl0, gre0 и sit0 являются зарезервированными в iproute2 ("base devices") и имеют особое поведение:
+
+mkdir /etc/net/ifaces/tun1
+затем описываем файл options
+vim /etc/net/ifaces/tun1/options
+
+TYPE=iptun
+TUNTYPE=gre
+TUNLOCAL=11.11.11.11
+TUNREMOTE=22.22.22.22
+TUNOPTIONS='ttl 64'
+HOST=ens33
+
+где:
+TUNLOCAL - IP-адрес ens33 на HQ-R
+TUNREMOTE - IP-адрес ens33 на BR-R
+
+назначаем IPv4 и IPv6 адрес на туннельный интерфейс:
+echo 172.16.100.1/24 > /etc/net/ifaces/tun1/ipv4address
+echo 2001:100::1/64 > /etc/net/ifaces/tun1/ipv6address
+
+Перезапускаем службу "network":
+systemctl restart network
+
+Включаем модуль ядра для gre:
+modprobe gre
+
+проверяем 
+ip -c --br a
+lsmod | grep gre
+
+BR-R:
+Настройки аналогичны HR-R за исключением:
+параметров TUNLOCAL и TUNREMOTE в файле options;
+а также IPv4 и IPv6 адресов назначаемых на tun1
+
+Результат:
+ip -c --br a
+lsmod | grep gre
+
+ping -c3 172.16.100.1
+
+Настройка динамической (внутренней) маршрутизации средствами frr
+HQ-R:
+
+Установим пакет frr:
+apt-get update && apt-get install -y frr
+
+vim /etc/frr/daemons
+переводим ospfd=no в ospfd=yes - для OSPFv2 (IPv4)
+переводим ospf6d=no в ospfd6=yes - для OSPFv3 (IPv6)
+
+Включаем и добавляем в автозагрузку службу frr:
+systemctl enable --now frr
+
+ss -tulpn | grep ospf
+
+Настраиваем OSPFv2 - переходим в интерфейс frr при помощи "vtysh":
+по скрину 8)1
+
+далее по скрину 8)2
+
+проверяем 
+show running-config
+
+BR-R:
+Настройки аналогичны HR-R за исключением:
+объявляемых сетей в OSPFv2;
+router-id  в OSPFv3
+
+Проверяем:
+скрин 8)3  8)4
