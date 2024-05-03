@@ -1,0 +1,86 @@
+Задание:
+3. Настройте автоматическое распределение IP-адресов на роутере HQ-R.
+a. Учтите, что у сервера должен быть зарезервирован адрес. 
+
+Выполнение:
+Настройка DHCP-сервера для IPv4:
+
+HQ-R:
+
+Установим пакет "dhcp-server":
+apt-get update && apt-get install -y dhcp-server
+
+Укажим сетевой интерефейс, через который будет работать DHCP-сервер:
+/etc/sysconfig/dhcpd - для dhcpd.service
+/etc/sysconfig/dhcpd6 - для dhcpd6.service
+
+где: ens34 - интерфейс смотрящий в локальную сеть офиса HQ
+
+скрин 10)1
+
+Опишим конфигурационный файл для DHCP работабщего с IPv4:
+файл с закоментированными примерами находится по пути "/etc/dhcp/dhcpd.conf.example"
+
+cp /etc/dhcp/dhcpd.conf{.example,}
+vim /etc/dhcp/dhcpd.conf
+
+после удаления лишних строк из файла с шаблоном - конфигурационный файл выглядит следующим образом:
+скрин 10)2
+
+После чего пожно проверить данный конфигурационный файл через утилиту "dhcpd"
+dhcpd -t -cf /etc/dhcp/dhcpd.conf
+
+Запускаем и добавляем в автозагрузку службу dhcpd (для IPv4):
+systemctl enable --now dhcpd
+
+Проверим статус службы dhcpd:
+systemctl status dhcpd
+
+запускаем журнал и включаем или перезагружаем интерфейс на HQ-SRV:
+journalctl -f -u dhcpd
+
+Настройка DHCP-сервера для IPv6:
+
+HQ-R:
+Опишим конфигурационный файл для DHCP работабщего с IPv6:
+аналогично IPv4 (dhcpd.conf) - в директории /etc/dhcp/ есть шаблон для dhcpd6.conf
+
+cp /etc/dhcp/dhcpd6.conf{.sample,}
+vim /etc/dhcp/dhcpd6.conf
+
+после удаления лишних строк из файла с шаблоном - конфигурационный файл выглядит следующим образом:
+
+скрин 10)3
+
+запускаем и добавляем в автозагрузку службу dhcpd6:
+systemctl enable --now dhcpd6
+
+скрин 10)4
+
+после чего перезагрузить службу dhcpd6:
+systemctl restart dhcpd6
+
+После этих манипуляций HQ-SRV получит IPv4 и IPv6 адрес автоматически.
+
+скрин 10)5
+
+Установка и настройка RA:
+HQ-R:
+
+установим пакет radvd: 
+apt-get install -y radvd
+
+Следующий модуль отвечает за RA на интерфейсе ens34 (нужно для получения HQ-SRV верных параметров IPv6 автоматически):
+echo net.ipv6.conf.ens34.accept_ra = 2 >> /etc/net/sysctl.conf; systemctl restart network
+
+Файл конфигурации по умолчанию находится в /etc/radvd.conf:
+vim /etc/radvd.conf
+
+приводим его к следующему виду:
+скрин 10)6
+
+Далее - необходимо перезапустить dhcpd6.service и запустить и добавить в автозагрузку radvd:
+systemctl restart dhcpd6
+systemctl enable --now radvd
+
+скрины 10)7  10)8
