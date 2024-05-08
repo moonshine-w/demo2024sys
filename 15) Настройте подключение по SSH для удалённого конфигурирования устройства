@@ -1,0 +1,57 @@
+Задание:
+7. Настройте подключение по SSH для удалённого конфигурирования устройства HQ-SRV по порту 2222. 
+Учтите, что вам необходимо перенаправить трафик на этот порт по средствам контролирования трафика.
+
+Выполнение:
+
+HQ-SRV:
+
+меняем стандартный порт ssh (22) на 2222 согласно заданию:
+sed -i "s/#Port 22/Port 2222/g" /etc/openssh/sshd_config
+
+перезапускаем службу sshd:
+systemctl restart sshd
+
+проверка:
+ss -tlpn | grep sshd
+
+HQ-R:
+
+Выполним установку nftables:
+apt-get install -y nftables
+
+Включаем и добавляем в автозагрузку службу nftables:
+systemctl enable --now nftables
+
+Создадим следующее правило, которое будет перенаправлять внешние подключения на порт 22 -> на порт 2222 сервера HQ-SRV:
+создадим таблицу "nat" - для семейства "inet":
+nft add table inet nat
+
+добавим цепочку "prerouting" в таблицу "nat"
+PREROUTING — предназначена для первичной обработки входящих пакетов, адресованных как непосредственно серверу, 
+так и другим узлам сети. Сюда попадает абсолютно весь входящий трафик для дальнейшего анализа.
+nft add chain inet nat prerouting '{ type nat hook prerouting priority 0; }'
+
+добавим необходимое правило для проброса портов в цепочку "prerouting" таблицы "nat" семейства "inet":
+nft add rule inet nat prerouting ip daddr 11.11.11.11 tcp dport 22 dnat to 192.168.100.1:2222
+nft add rule inet nat prerouting ip6 daddr 2001:11::11 tcp dport 22 dnat to [2000:100::1]:2222
+
+просмотр текущих правил:
+nft list ruleset | cat -n
+
+для сохранения текущих правил, необходимо перенаправить результат вывода данной команды, 
+а именно строки с 14 по 20 в конфигурационный файл "/etc/nftables/nftables.nft":
+nft list ruleset | tail -n 7 | tee -a /etc/nftables/nftables.nft
+
+перезапускаем службу nftables:
+systemctl restart nftables
+nft list ruleset
+
+Проверяем:
+BR-R:
+подключаемся по ssh под пользователем admin на внешний IPv4 и IPv6 адрес HQ-R, а попадаем на HQ-SRV:
+скрин 15)1
+
+
+
+
