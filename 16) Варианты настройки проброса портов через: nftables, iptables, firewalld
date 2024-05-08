@@ -1,0 +1,92 @@
+Задача:
+Рассмотреть варианты проброса портов, через различные брандмауэры, на примере:
+nftables
+iptables
+firewalld
+Для "Учтите, что вам необходимо перенаправить трафик на этот порт по средствам контролирования трафика."
+
+Выполнение:
+
+HQ-R:
+
+ЧЕРЕЗ NFTABLES:
+Выполним установку nftables:
+apt-get install -y nftables
+
+Включаем и добавляем в автозагрузку службу nftables:
+systemctl enable --now nftables
+
+Создадим следующее правило, которое будет перенаправлять внешние подключения на порт 22 -> на порт 2222 сервера HQ-SRV:
+создадим таблицу "nat" - для семейства "inet":
+nft add table inet nat
+
+добавим цепочку "prerouting" в таблицу "nat":
+nft add chain inet nat prerouting '{ type nat hook prerouting priority 0; }'
+
+добавим необходимое правило для проброса портов в цепочку "prerouting" таблицы "nat" семейства "inet":
+nft add rule inet nat prerouting ip daddr 11.11.11.11 tcp dport 22 dnat to 192.168.100.1:2222
+nft add rule inet nat prerouting ip6 daddr 2001:11::11 tcp dport 22 dnat to [2000:100::1]:2222
+
+просмотр текущих правил:
+nft list ruleset | cat -n
+
+для сохранения текущих правил, необходимо перенаправить результат вывода данной команды, 
+а именно строки с 14 по 20 в конфигурационный файл "/etc/nftables/nftables.nft":
+nft list ruleset | tail -n 7 | tee -a /etc/nftables/nftables.nft
+
+перезапускаем службу nftables:
+systemctl restart nftables
+nft list ruleset
+
+ЧЕРЕЗ IPTABLES:
+
+для IPv6 установить пакет iptables-ipv6:
+apt-get install -y iptables-ipv6
+
+Создадим следующее правило, которое будет перенаправлять внешние подключения на порт 22 -> на порт 2222 сервера HQ-SRV:
+в таблицу nat в цепочку prerouting (до маршрутизации) добавляем правило:
+iptables -t nat -A PREROUTING -i ens33 -p tcp --dport 22 -j DNAT --to-destination 192.168.100.1:2222
+
+скрин 16)1
+
+добавляем правило для IPv6, через ip6tables:
+ip6tables -t nat -A PREROUTING -i ens33 -p tcp --dport 22 -j DNAT --to-destination [2000:100::1]:2222
+
+скрин 16)2
+
+сохраняем правила iptables и ip6tables:
+
+iptables:
+iptables-save >> /etc/sysconfig/iptables
+systemctl enable --now iptables
+
+ip6tables:
+ip6tables-save >> /etc/sysconfig/iptables6
+systemctl enable --now ip6tables
+
+ЧЕРЕЗ FIREWALLD:
+
+Установим пакет firewalld:
+apt-get install -y firewalld
+
+Включаем и добавляем в автозагрузку службу firewalld:
+systemctl enable --now firewalld
+
+Добавляем внешний интерфейс"ens33" в зону "public":
+параметр --permanent отвечает за сохранение правил при перезагрузке
+firewall-cmd --permanent --zone=public --add-interface=ens33
+
+Добавляем внутренний интерфейс "ens34" в зону "trusted":
+firewall-cmd --permanent --zone=trusted --add-interface=ens34
+
+Добавляем правило в зону "public, которое будет перенаправлять внешние подключения 
+на порт 22 -> на порт 2222 сервера HQ-SRV:
+firewall-cmd --permanent --zone=public --add-forward-port=port=22:proto=tcp:toport=2222:toaddr=192.168.100.1
+firewall-cmd --permanent --zone=public --add-forward-port=port=22:proto=tcp:toport=2222:toaddr=2000:100::1
+
+Перезагружаем firewall:
+firewall-cmd --reload
+
+скрин 16)3
+
+
