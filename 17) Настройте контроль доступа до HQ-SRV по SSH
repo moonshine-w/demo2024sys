@@ -1,0 +1,46 @@
+Задание:
+8. Настройте контроль доступа до HQ-SRV по SSH со всех устройств, кроме CLI.
+
+Выполнение:
+
+HQ-R:
+
+в ранее созданную таблицу nat в семействе inet добавляем цепочку postrouting:
+nft add chain inet nat postrouting '{ type nat hook postrouting priority 0; }'
+
+в созданную цепочку postrouting добавляем правило, реализующее nat (masquerade):
+nft add rule inet nat postrouting ip saddr 192.168.100.0/26 oifname 'ens33' counter masquerade
+
+скрин 17)1
+
+скрин 17)2
+
+HQ-SRV:
+
+обновляем список пакетов и устанавливаем nftables:
+apt-get update && apt-get install -y nftables
+
+включаем и добавляем в автозагрузку nftables:
+systemctl enable --now nftables
+
+добавляем правила, запрещающие доступ по ssh (порт 2222) с CLI, как с временного подключения так и с глобального, 
+как для IPv4 так и для IPv6:
+
+для IPv4:
+nft add rule inet filter input ip saddr 33.33.33.33 tcp dport 2222 counter drop
+nft add rule inet filter input ip saddr 44.44.44.0/24 tcp dport 2222 counter drop
+
+для IPv6:
+nft add rule inet filter input ip6 saddr 2001:33::/64 tcp dport 2222 counter drop
+nft add rule inet filter input ip6 saddr 2001:44::/64 tcp dport 2222 counter drop
+
+скрин 17)3
+
+отправляем результат команды "nft list ruleset" - в файл "/etc/nftables/nftables.nft":
+nft list ruleset | tee -a /etc/nftables/nftables.nft
+
+перезапускаем nftables  и проверяем наличие правил:
+systemctl restart nftables
+nft list ruleset
+
+скрин 17)4  17)5
